@@ -77,7 +77,7 @@ export async function runCli(
       return 1;
     }
 
-    io.stderr(`${(error as Error).message}\n`);
+    io.stderr(`${error instanceof Error ? error.message : "Unknown configuration error"}\n`);
     return 1;
   }
 }

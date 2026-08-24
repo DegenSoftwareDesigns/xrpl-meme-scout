@@ -85,6 +85,21 @@ describe("Phase 0 CLI", () => {
     expect(commandCapture.stderr.join("")).toContain("Unknown command");
   });
 
+  it("reports a stable fallback when an IO adapter throws a non-Error value", async () => {
+    const stderr: string[] = [];
+    const configDirectory = path.join(process.cwd(), "config", "tokens");
+    const nonErrorValue = { message: "adapter failure", name: "SyntheticNonError" } as Error;
+    const io: CliIo = {
+      stderr: (message) => stderr.push(message),
+      stdout: () => {
+        throw nonErrorValue;
+      },
+    };
+
+    expect(await runCli(["config", "validate", "--config-dir", configDirectory], io)).toBe(1);
+    expect(stderr.join("")).toBe("Unknown configuration error\n");
+  });
+
   it("rejects missing and unknown config options", async () => {
     const missingValue = captureIo();
     expect(await runCli(["config", "validate", "--config-dir"], missingValue.io)).toBe(1);
