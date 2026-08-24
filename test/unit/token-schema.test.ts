@@ -49,6 +49,15 @@ function firstVenue(document: Record<string, unknown>): Record<string, unknown> 
   return venue;
 }
 
+function expectValidationIssue(document: Record<string, unknown>, message: string): void {
+  const result = TokenConfigSchema.safeParse(document);
+  expect(result.success).toBe(false);
+  if (result.success) {
+    throw new Error(`Expected token configuration to fail with: ${message}`);
+  }
+  expect(result.error.issues).toContainEqual(expect.objectContaining({ message }));
+}
+
 describe("token configuration schema", () => {
   it("accepts the canonical DROP configuration", () => {
     const result = TokenConfigSchema.safeParse(cloneValidDocument());
@@ -90,25 +99,13 @@ describe("token configuration schema", () => {
     const reversedDocument = cloneValidDocument();
     firstKnownWallet(reversedDocument)["valid_from"] = "2026-01-02T00:00:00Z";
     firstKnownWallet(reversedDocument)["valid_to"] = "2026-01-01T00:00:00Z";
-    const result = TokenConfigSchema.safeParse(reversedDocument);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "valid_from must be earlier than valid_to" }),
-      );
-    }
+    expectValidationIssue(reversedDocument, "valid_from must be earlier than valid_to");
   });
 
   it("rejects duplicate labels on a known wallet", () => {
     const document = cloneValidDocument();
     firstKnownWallet(document)["labels"] = ["issuer", "issuer"];
-    const result = TokenConfigSchema.safeParse(document);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "labels must be unique" }),
-      );
-    }
+    expectValidationIssue(document, "labels must be unique");
   });
 
   it("requires an AMM account only when discovery is disabled", () => {
@@ -119,53 +116,30 @@ describe("token configuration schema", () => {
 
     const missingDocument = cloneValidDocument();
     firstVenue(missingDocument)["discover"] = false;
-    const result = TokenConfigSchema.safeParse(missingDocument);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({
-          message: "amm_account is required when AMM discovery is disabled",
-        }),
-      );
-    }
+    expectValidationIssue(
+      missingDocument,
+      "amm_account is required when AMM discovery is disabled",
+    );
   });
 
   it("rejects a market whose base and quote assets are identical", () => {
     const document = cloneValidDocument();
     firstMarket(document)["quote"] = structuredClone(firstMarket(document)["base"]);
-    const result = TokenConfigSchema.safeParse(document);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "base and quote assets must differ" }),
-      );
-    }
+    expectValidationIssue(document, "base and quote assets must differ");
   });
 
   it("rejects duplicate venue types within one market", () => {
     const document = cloneValidDocument();
     const venues = firstMarket(document)["venues"] as Record<string, unknown>[];
     venues.push(structuredClone(firstVenue(document)));
-    const result = TokenConfigSchema.safeParse(document);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "venue types must be unique" }),
-      );
-    }
+    expectValidationIssue(document, "venue types must be unique");
   });
 
   it("rejects duplicate known-wallet addresses", () => {
     const document = cloneValidDocument();
     const wallets = document["known_wallets"] as Record<string, unknown>[];
     wallets.push(structuredClone(firstKnownWallet(document)));
-    const result = TokenConfigSchema.safeParse(document);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "known wallet addresses must be unique" }),
-      );
-    }
+    expectValidationIssue(document, "known wallet addresses must be unique");
   });
 
   it("accepts open or ascending ledger ranges and rejects descending ranges", () => {
@@ -181,13 +155,7 @@ describe("token configuration schema", () => {
     const descendingDocument = cloneValidDocument();
     (descendingDocument["history"] as Record<string, unknown>)["from_ledger"] = 200;
     (descendingDocument["history"] as Record<string, unknown>)["to_ledger"] = 100;
-    const result = TokenConfigSchema.safeParse(descendingDocument);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "from_ledger must not exceed to_ledger" }),
-      );
-    }
+    expectValidationIssue(descendingDocument, "from_ledger must not exceed to_ledger");
   });
 
   it("rejects duplicate market IDs and missing token tuples", () => {
@@ -232,13 +200,7 @@ describe("token configuration schema", () => {
   it("requires the minimum alert score to equal the elevated level", () => {
     const document = cloneValidDocument();
     alerts(document)["minimum_score"] = 61;
-    const result = TokenConfigSchema.safeParse(document);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues).toContainEqual(
-        expect.objectContaining({ message: "minimum_score must equal the elevated alert level" }),
-      );
-    }
+    expectValidationIssue(document, "minimum_score must equal the elevated alert level");
   });
 
   it("accepts only an environment variable name for the Discord webhook", () => {

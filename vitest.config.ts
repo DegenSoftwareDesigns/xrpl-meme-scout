@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     coverage: {
-      exclude: ["scripts/generate-schema.ts", "src/storage/validate-migrations.ts"],
+      include: ["src/**/*.ts", "scripts/**/*.ts"],
       provider: "v8",
       reporter: ["text", "json-summary", "html"],
       thresholds: {
