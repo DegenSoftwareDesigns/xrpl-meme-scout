@@ -81,4 +81,18 @@ describe("token configuration loader", () => {
       issues: ["token.id: duplicate token ID 'drop'"],
     });
   });
+
+  it("rejects duplicate canonical token tuples across different token IDs", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "scout-duplicate-tuple-"));
+    const document = await validDocument();
+    await writeFile(path.join(directory, "a.yaml"), stringify(document), "utf8");
+
+    const duplicateTuple = structuredClone(document);
+    (duplicateTuple["token"] as Record<string, unknown>)["id"] = "drop_alias";
+    await writeFile(path.join(directory, "b.yaml"), stringify(duplicateTuple), "utf8");
+
+    await expect(loadTokenConfigs(directory)).rejects.toMatchObject({
+      issues: [expect.stringContaining("duplicate canonical tuple")],
+    });
+  });
 });
