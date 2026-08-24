@@ -22,8 +22,12 @@ function parseConfigDirectory(arguments_: readonly string[]): string {
 
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
+    if (argument === undefined) {
+      throw new Error("Unknown option: <missing>");
+    }
+
     if (argument !== "--config-dir") {
-      throw new Error(`Unknown option: ${argument ?? "<missing>"}`);
+      throw new Error(`Unknown option: ${argument}`);
     }
 
     const value = arguments_[index + 1];

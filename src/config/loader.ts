@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
-import { ZodError } from "zod";
+import type { ZodError } from "zod";
 
 import { canonicalTokenKey } from "../domain/assets.js";
 import { TokenConfigSchema, type TokenConfig } from "./token-schema.js";
@@ -80,16 +80,11 @@ export async function loadTokenConfigFile(sourcePath: string): Promise<LoadedTok
     throw new ConfigValidationError(absolutePath, ["<root>: invalid YAML syntax"]);
   }
 
-  let config: TokenConfig;
-  try {
-    config = TokenConfigSchema.parse(untrustedDocument);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      throw new ConfigValidationError(absolutePath, formatZodIssues(error));
-    }
-
-    throw error;
+  const result = TokenConfigSchema.safeParse(untrustedDocument);
+  if (!result.success) {
+    throw new ConfigValidationError(absolutePath, formatZodIssues(result.error));
   }
+  const config: TokenConfig = result.data;
 
   const frozenConfig = deepFreeze(config);
 
