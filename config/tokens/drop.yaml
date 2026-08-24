@@ -1,0 +1,93 @@
+schema_version: 1
+
+token:
+  id: drop
+  enabled: true
+  network: mainnet
+  symbol: DROP
+  name: DROP
+  issuer: rszenFJoDdiGjyezQc8pME9KWDQH43Tswh
+  currency: "44524F5000000000000000000000000000000000"
+  metadata:
+    tags: [memecoin]
+    description: "Initial monitored asset. Symbol is display-only; issuer and currency are canonical."
+    links: []
+
+history:
+  from_ledger: null
+  to_ledger: validated
+  require_complete_range_for_event_study: true
+  raw_retention_days: 90
+
+markets:
+  - id: drop_xrp
+    base:
+      type: issued
+      issuer: rszenFJoDdiGjyezQc8pME9KWDQH43Tswh
+      currency: "44524F5000000000000000000000000000000000"
+    quote:
+      type: xrp
+    venues:
+      - type: amm
+        discover: true
+        amm_account: null
+      - type: dex_order_book
+        directions: both
+    depth_notional_xrp: [100, 500, 1000, 5000]
+
+known_wallets:
+  - address: rszenFJoDdiGjyezQc8pME9KWDQH43Tswh
+    labels: [issuer]
+    role_hint: issuer
+    attribution:
+      status: protocol_fact
+      source: token_config
+      note: "Issuer from the canonical token tuple; no identity claim."
+
+analysis:
+  windows_minutes: [15, 60, 360, 1440, 10080]
+  baseline_days: 30
+  minimum_baseline_samples: 20
+  precursor_windows_hours: [1, 6, 24, 168]
+  pump_event:
+    forward_horizon_hours: 24
+    minimum_token_xrp_return_pct: 50
+    minimum_quote_volume_xrp: 1000
+    collapse_gap_hours: 72
+  graph:
+    funding_lookback_hours: 72
+    synchronized_action_minutes: 10
+    max_funding_hops: 2
+    hub_unique_counterparties_30d: 100
+    minimum_cluster_edge_score: 0.55
+
+score:
+  version: pps-v1
+  warn_robust_z: 1.5
+  critical_robust_z: 4.0
+  features:
+    newly_funded_buyers: 0.15
+    coordinated_accumulation: 0.18
+    common_funding_evidence: 0.15
+    liquidity_withdrawal: 0.12
+    sell_side_depth_thinning: 0.08
+    quiet_price_buy_pressure: 0.07
+    repeat_precursor_wallets: 0.15
+    trustline_creation_burst: 0.05
+    holder_concentration_increase: 0.05
+
+alerts:
+  enabled: false
+  destination: discord
+  webhook_env: DISCORD_WEBHOOK_URL
+  minimum_score: 60
+  levels:
+    elevated: 60
+    high: 75
+    critical: 90
+  minimum_feature_families: 2
+  minimum_data_coverage_ratio: 0.65
+  maximum_data_age_seconds: 90
+  cooldown_minutes: 360
+  realert_score_increase: 10
+  recovery_below_score: 45

@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": { "type": "number", "const": 1 },
+    "token": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9_]*$" },
+        "enabled": { "type": "boolean" },
+        "network": { "type": "string", "enum": ["mainnet", "testnet", "devnet"] },
+        "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "issuer": { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" },
+        "currency": { "type": "string", "pattern": "^(?:[!-~]{3}|[0-9A-Fa-f]{40})$" },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]*$"
+              }
+            },
+            "description": { "type": "string", "maxLength": 500 },
+            "links": {
+              "maxItems": 20,
+              "type": "array",
+              "items": { "type": "string", "format": "uri" }
+            }
+          },
+          "required": ["tags", "description", "links"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["id", "enabled", "network", "symbol", "name", "issuer", "currency", "metadata"],
+      "additionalProperties": false
+    },
+    "history": {
+      "type": "object",
+      "properties": {
+        "from_ledger": {
+          "anyOf": [
+            { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+            { "type": "null" }
+          ]
+        },
+        "to_ledger": {
+          "anyOf": [
+            { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+            { "type": "string", "const": "validated" }
+          ]
+        },
+        "require_complete_range_for_event_study": { "type": "boolean" },
+        "raw_retention_days": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "from_ledger",
+        "to_ledger",
+        "require_complete_range_for_event_study",
+        "raw_retention_days"
+      ],
+      "additionalProperties": false
+    },
+    "markets": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "base": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": { "type": { "type": "string", "const": "xrp" } },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "issued" },
+                  "issuer": { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" },
+                  "currency": { "type": "string", "pattern": "^(?:[!-~]{3}|[0-9A-Fa-f]{40})$" }
+                },
+                "required": ["type", "issuer", "currency"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "quote": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": { "type": { "type": "string", "const": "xrp" } },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "const": "issued" },
+                  "issuer": { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" },
+                  "currency": { "type": "string", "pattern": "^(?:[!-~]{3}|[0-9A-Fa-f]{40})$" }
+                },
+                "required": ["type", "issuer", "currency"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "venues": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "const": "amm" },
+                    "discover": { "type": "boolean" },
+                    "amm_account": {
+                      "anyOf": [
+                        { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" },
+                        { "type": "null" }
+                      ]
+                    }
+                  },
+                  "required": ["type", "discover", "amm_account"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "const": "dex_order_book" },
+                    "directions": {
+                      "type": "string",
+                      "enum": ["both", "base_to_quote", "quote_to_base"]
+                    }
+                  },
+                  "required": ["type", "directions"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "depth_notional_xrp": {
+            "minItems": 1,
+            "type": "array",
+            "items": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 }
+          }
+        },
+        "required": ["id", "base", "quote", "venues", "depth_notional_xrp"],
+        "additionalProperties": false
+      }
+    },
+    "known_wallets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "address": { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" },
+          "labels": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_]*$"
+            }
+          },
+          "role_hint": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "valid_to": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "attribution": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["protocol_fact", "analyst_annotation", "external_evidence"]
+              },
+              "source": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "note": { "type": "string", "minLength": 1, "maxLength": 500 }
+            },
+            "required": ["status", "source", "note"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["address", "labels", "attribution"],
+        "additionalProperties": false
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "properties": {
+        "windows_minutes": {
+          "minItems": 1,
+          "type": "array",
+          "items": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 }
+        },
+        "baseline_days": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+        "minimum_baseline_samples": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "precursor_windows_hours": {
+          "minItems": 1,
+          "type": "array",
+          "items": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 }
+        },
+        "pump_event": {
+          "type": "object",
+          "properties": {
+            "forward_horizon_hours": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "minimum_token_xrp_return_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "minimum_quote_volume_xrp": { "type": "number", "exclusiveMinimum": 0 },
+            "collapse_gap_hours": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "forward_horizon_hours",
+            "minimum_token_xrp_return_pct",
+            "minimum_quote_volume_xrp",
+            "collapse_gap_hours"
+          ],
+          "additionalProperties": false
+        },
+        "graph": {
+          "type": "object",
+          "properties": {
+            "funding_lookback_hours": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "synchronized_action_minutes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_funding_hops": { "type": "integer", "minimum": 1, "maximum": 10 },
+            "hub_unique_counterparties_30d": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "minimum_cluster_edge_score": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "required": [
+            "funding_lookback_hours",
+            "synchronized_action_minutes",
+            "max_funding_hops",
+            "hub_unique_counterparties_30d",
+            "minimum_cluster_edge_score"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "windows_minutes",
+        "baseline_days",
+        "minimum_baseline_samples",
+        "precursor_windows_hours",
+        "pump_event",
+        "graph"
+      ],
+      "additionalProperties": false
+    },
+    "score": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "warn_robust_z": { "type": "number" },
+        "critical_robust_z": { "type": "number" },
+        "features": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      },
+      "required": ["version", "warn_robust_z", "critical_robust_z", "features"],
+      "additionalProperties": false
+    },
+    "alerts": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "destination": { "type": "string", "const": "discord" },
+        "webhook_env": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "minimum_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "levels": {
+          "type": "object",
+          "properties": {
+            "elevated": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "high": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "critical": { "type": "integer", "minimum": 0, "maximum": 100 }
+          },
+          "required": ["elevated", "high", "critical"],
+          "additionalProperties": false
+        },
+        "minimum_feature_families": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimum_data_coverage_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maximum_data_age_seconds": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cooldown_minutes": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "realert_score_increase": { "type": "integer", "exclusiveMinimum": 0, "maximum": 100 },
+        "recovery_below_score": { "type": "integer", "minimum": 0, "maximum": 100 }
+      },
+      "required": [
+        "enabled",
+        "destination",
+        "webhook_env",
+        "minimum_score",
+        "levels",
+        "minimum_feature_families",
+        "minimum_data_coverage_ratio",
+        "maximum_data_age_seconds",
+        "cooldown_minutes",
+        "realert_score_increase",
+        "recovery_below_score"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "token",
+    "history",
+    "markets",
+    "known_wallets",
+    "analysis",
+    "score",
+    "alerts"
+  ],
+  "additionalProperties": false,
+  "$id": "https://github.com/DegenSoftwareDesigns/xrpl-meme-scout/config/schema/token.schema.json",
+  "title": "xrpl-meme-scout token configuration",
+  "description": "Configuration contract for a monitored XRPL token. Runtime validation adds exact XRPL address, tuple, uniqueness, and cross-field checks."
+}
